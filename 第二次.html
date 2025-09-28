@@ -1,0 +1,2890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政治经济学题库系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E40AF', // 深蓝主色调，体现专业性
+                        secondary: '#3B82F6', // 中蓝辅助色
+                        accent: '#60A5FA', // 亮蓝强调色
+                        neutral: '#F3F4F6', // 中性背景色
+                        dark: '#1F2937', // 深色文本
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+            }
+            .btn-primary {
+                @apply bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-all cursor-pointer;
+            }
+            .btn-secondary {
+                @apply bg-white border border-primary text-primary px-4 py-2 rounded-md hover:bg-primary/5 transition-all cursor-pointer;
+            }
+            .input-field {
+                @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary;
+            }
+            .question-preview {
+                @apply bg-neutral p-4 rounded-lg my-4 border border-gray-200;
+            }
+            .search-result-highlight {
+                @apply bg-yellow-200 px-1 rounded;
+            }
+            .progress-indicator {
+                @apply h-2 bg-gray-200 rounded-full overflow-hidden;
+            }
+            .progress-fill {
+                @apply h-full bg-primary transition-all duration-300;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-dark min-h-screen flex flex-col">
+    <!-- 导航栏 -->
+    <header id="navbar" class="bg-white shadow-sm fixed w-full z-50 transition-all duration-300">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- 顶部导航 - 网站标志和主导航 -->
+            <div class="flex justify-between items-center h-16">
+                <!-- 网站标志 -->
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i class="fa fa-book text-primary text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-primary">政治经济学题库</span>
+                    </div>
+                    
+                    <!-- 导航链接 - 区分教师和学生权限 -->
+                    <nav class="hidden md:ml-10 md:flex md:space-x-8 ml-6">
+                        <a href="#home" class="nav-link text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">首页</a>
+                        <a href="#questions" class="nav-link text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">题库练习</a>
+                        <a href="#upload" class="nav-link text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors hidden" id="upload-link">上传题目</a>
+                        <a href="#records" class="nav-link text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors hidden" id="records-link">做题记录</a>
+                        <a href="#wrong-questions" class="nav-link text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors hidden" id="wrong-questions-link">错题记录</a>
+                        <a href="#history" class="nav-link text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors hidden" id="history-link">浏览记录</a>
+                        <a href="#pending" class="nav-link text-gray-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors hidden" id="pending-link">待审核题目</a>
+                    </nav>
+                </div>
+                
+                <!-- 用户操作区 -->
+                <div class="flex items-center space-x-4">
+                    <!-- 新增上传题目快速入口 -->
+                    <button id="quick-upload-btn" class="btn-primary hidden md:flex items-center mr-2">
+                        <i class="fa fa-upload mr-1"></i> 上传题目
+                    </button>
+                    
+                    <div id="user-buttons" class="flex items-center space-x-3">
+                        <button id="login-btn" class="btn-secondary hidden md:flex items-center">
+                            <i class="fa fa-sign-in mr-1"></i> 登录
+                        </button>
+                        <button id="register-btn" class="btn-primary hidden md:flex items-center">
+                            <i class="fa fa-user-plus mr-1"></i> 注册
+                        </button>
+                        
+                        <!-- 移动端菜单按钮 -->
+                        <button id="mobile-menu-btn" class="md:hidden text-gray-700 hover:text-primary">
+                            <i class="fa fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- 用户菜单 - 登录后显示 -->
+                    <div id="user-menu" class="hidden relative">
+                        <button id="user-menu-button" class="flex items-center text-sm focus:outline-none">
+                            <img class="h-8 w-8 rounded-full object-cover" src="https://picsum.photos/id/64/200/200" alt="用户头像">
+                            <span class="ml-2 hidden md:inline-block" id="current-username">用户名</span>
+                            <span class="ml-2 hidden md:inline-block text-xs px-2 py-0.5 rounded-full bg-gray-200" id="user-role">学生</span>
+                            <i class="fa fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                        <div id="user-dropdown" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 hidden z-50">
+                            <a href="#profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">个人资料</a>
+                            <a href="#records" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">做题记录</a>
+                            <a href="#wrong-questions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">错题记录</a>
+                            <a href="#history" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="mobile-history-link">浏览记录</a>
+                            <a href="#upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hidden" id="mobile-upload-link">上传题目</a>
+                            <a href="#pending" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hidden" id="mobile-pending-link">待审核题目</a>
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <a href="#" id="logout-btn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">退出登录</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 搜索框单独一行 -->
+            <div class="py-3 border-t border-gray-100">
+                <div class="relative">
+                    <input type="text" id="global-search" placeholder="搜索题目、考点或关键词..." 
+                           class="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-sm">
+                    <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <button id="search-button" class="absolute right-3 top-1/2 transform -translate-y-1/2 bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary/90">
+                        搜索
+                    </button>
+                </div>
+                
+                <!-- 搜索范围筛选 -->
+                <div class="flex flex-wrap gap-2 mt-2">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" class="form-checkbox text-primary h-4 w-4" checked id="search-content">
+                        <span class="ml-1 text-sm text-gray-700">题目内容</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" class="form-checkbox text-primary h-4 w-4" checked id="search-tags">
+                        <span class="ml-1 text-sm text-gray-700">考点标签</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" class="form-checkbox text-primary h-4 w-4" id="search-explanation">
+                        <span class="ml-1 text-sm text-gray-700">答案解析</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- 移动端导航菜单 -->
+            <div id="mobile-menu" class="md:hidden hidden pb-3">
+                <div class="px-2 pt-2 pb-3 space-y-1">
+                    <!-- 移动端搜索框 -->
+                    <div class="relative px-3 mb-4">
+                        <input type="text" id="mobile-global-search" placeholder="搜索题目、考点或关键词..." 
+                               class="w-full pl-10 pr-10 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-sm">
+                        <i class="fa fa-search absolute left-6 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <button id="mobile-search-button" class="absolute right-6 top-1/2 transform -translate-y-1/2 bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary/90">
+                            搜索
+                        </button>
+                    </div>
+                    
+                    <!-- 移动端搜索范围 -->
+                    <div class="flex flex-wrap gap-2 px-3 mb-3">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox text-primary h-4 w-4" checked id="mobile-search-content">
+                            <span class="ml-1 text-sm text-gray-700">题目内容</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox text-primary h-4 w-4" checked id="mobile-search-tags">
+                            <span class="ml-1 text-sm text-gray-700">考点标签</span>
+                        </label>
+                    </div>
+                    
+                    <a href="#home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50">首页</a>
+                    <a href="#questions" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50">题库练习</a>
+                    <a href="#upload" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50 hidden" id="mobile-nav-upload">上传题目</a>
+                    <a href="#records" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50 hidden" id="mobile-nav-records">做题记录</a>
+                    <a href="#wrong-questions" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50 hidden" id="mobile-nav-wrong-questions">错题记录</a>
+                    <a href="#history" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50 hidden" id="mobile-nav-history">浏览记录</a>
+                    <a href="#pending" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50 hidden" id="mobile-nav-pending">待审核题目</a>
+                    <!-- 移动端上传题目快速入口 -->
+                    <a href="#upload" class="block px-3 py-2 mt-2 rounded-md text-base font-medium bg-primary text-white hover:bg-primary/90 hidden" id="mobile-quick-upload">
+                        <i class="fa fa-upload mr-1"></i> 上传题目
+                    </a>
+                    <div class="flex space-x-2 px-3 pt-2">
+                        <button id="mobile-login-btn" class="btn-secondary flex-1">登录</button>
+                        <button id="mobile-register-btn" class="btn-primary flex-1">注册</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="flex-grow pt-32"> <!-- 增加顶部间距以适应新的导航栏高度 -->
+        <!-- 首页/英雄区域 -->
+        <section id="home" class="py-16 md:py-24 bg-gradient-to-br from-primary to-secondary text-white overflow-hidden relative">
+            <!-- 背景装饰 -->
+            <div class="absolute inset-0 overflow-hidden opacity-10">
+                <div class="absolute -right-10 -top-10 w-64 h-64 rounded-full bg-white"></div>
+                <div class="absolute left-1/4 bottom-10 w-32 h-32 rounded-full bg-white"></div>
+                <div class="absolute right-1/3 top-1/3 w-16 h-16 rounded-full bg-white"></div>
+            </div>
+            
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/2 mb-10 md:mb-0">
+                        <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-tight text-shadow mb-6 animate-fade-in">
+                            政治经济学<br>在线题库系统
+                        </h1>
+                        <p class="text-lg md:text-xl opacity-90 mb-8 max-w-lg">
+                            覆盖从本科到研究生阶段的政治经济学题目，提供练习、批改、解析一站式服务，助您轻松掌握知识点。
+                        </p>
+                        <div class="flex flex-wrap gap-4">
+                            <button id="start-practice-btn" class="bg-white text-primary hover:bg-gray-100 px-6 py-3 rounded-md font-medium transition-all flex items-center">
+                                <i class="fa fa-play-circle mr-2"></i> 开始练习
+                            </button>
+                            <button id="browse-questions-btn" class="bg-transparent border-2 border-white text-white hover:bg-white/10 px-6 py-3 rounded-md font-medium transition-all flex items-center">
+                                <i class="fa fa-search mr-2"></i> 浏览题库
+                            </button>
+                            <!-- 首页上传题目按钮 -->
+                            <button id="home-upload-btn" class="bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 px-6 py-3 rounded-md font-medium transition-all flex items-center">
+                                <i class="fa fa-upload mr-2"></i> 上传题目
+                            </button>
+                        </div>
+                        
+                        <!-- 适用学段 -->
+                        <div class="mt-10">
+                            <p class="text-sm opacity-80 mb-3">适用学段：</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm">大一</span>
+                                <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm">大二</span>
+                                <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm">大三</span>
+                                <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm">大四</span>
+                                <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm">研究生</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="md:w-1/2 relative">
+                        <div class="relative z-10 bg-white p-2 rounded-lg shadow-2xl transform rotate-2 hover:rotate-0 transition-all duration-500">
+                            <img src="https://picsum.photos/id/3/600/400" alt="政治经济学题目练习界面" class="rounded-md w-full h-auto">
+                        </div>
+                        <div class="absolute top-6 -right-6 w-full h-full bg-accent rounded-lg -z-10 transform rotate-6"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 搜索结果区域 -->
+        <section id="search-results" class="py-16 bg-neutral hidden">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold mb-4">搜索结果</h2>
+                    <p class="text-gray-600 max-w-3xl mx-auto" id="search-query-display">
+                        为您找到包含 "<span class="font-semibold" id="search-keyword-display"></span>" 的 <span class="font-semibold" id="search-result-count"></span> 道题目
+                    </p>
+                    
+                    <!-- 搜索结果筛选 -->
+                    <div class="mt-6 flex flex-wrap justify-center gap-3">
+                        <select id="search-result-filter" class="input-field w-auto max-w-xs">
+                            <option value="relevance">按相关度排序</option>
+                            <option value="difficulty-easy">难度：易</option>
+                            <option value="difficulty-medium">难度：中</option>
+                            <option value="difficulty-hard">难度：难</option>
+                            <option value="type-single">题型：单选题</option>
+                            <option value="type-multiple">题型：多选题</option>
+                            <option value="type-judge">题型：判断题</option>
+                            <option value="type-short">题型：简答题</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 搜索结果列表 -->
+                <div class="space-y-6" id="search-results-list">
+                    <!-- 搜索结果将通过JavaScript动态生成 -->
+                </div>
+                
+                <!-- 无结果提示 -->
+                <div id="no-search-results" class="hidden text-center py-12">
+                    <i class="fa fa-search text-5xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-500">未找到匹配的题目，请尝试其他关键词</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 题库分类 -->
+        <section class="py-16 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold mb-4">题库分类</h2>
+                    <p class="text-gray-600 max-w-3xl mx-auto">按学段和章节分类，轻松找到适合您的练习题目</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 大一题库 -->
+                    <div class="bg-neutral rounded-xl overflow-hidden shadow-sm card-hover">
+                        <div class="h-48 overflow-hidden">
+                            <img src="https://picsum.photos/id/20/600/400" alt="大一政治经济学题库" class="w-full h-full object-cover transition-transform duration-500 hover:scale-110">
+                        </div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xl font-semibold">大一题库</h3>
+                                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">基础</span>
+                            </div>
+                            <p class="text-gray-600 mb-4">包含商品与货币、资本与剩余价值等基础章节题目</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500 text-sm"><i class="fa fa-question-circle mr-1"></i> <span id="freshman-count">240</span>题</span>
+                                <button class="btn-primary text-sm px-3 py-1.5 start-practice" data-level="大一">
+                                    开始练习
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 大二题库 -->
+                    <div class="bg-neutral rounded-xl overflow-hidden shadow-sm card-hover">
+                        <div class="h-48 overflow-hidden">
+                            <img src="https://picsum.photos/id/24/600/400" alt="大二政治经济学题库" class="w-full h-full object-cover transition-transform duration-500 hover:scale-110">
+                        </div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xl font-semibold">大二题库</h3>
+                                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">进阶</span>
+                            </div>
+                            <p class="text-gray-600 mb-4">包含资本积累、资本循环与周转等核心章节题目</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500 text-sm"><i class="fa fa-question-circle mr-1"></i> <span id="sophomore-count">320</span>题</span>
+                                <button class="btn-primary text-sm px-3 py-1.5 start-practice" data-level="大二">
+                                    开始练习
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 大三题库 -->
+                    <div class="bg-neutral rounded-xl overflow-hidden shadow-sm card-hover">
+                        <div class="h-48 overflow-hidden">
+                            <img src="https://picsum.photos/id/48/600/400" alt="大三政治经济学题库" class="w-full h-full object-cover transition-transform duration-500 hover:scale-110">
+                        </div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xl font-semibold">大三题库</h3>
+                                <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">提高</span>
+                            </div>
+                            <p class="text-gray-600 mb-4">包含社会总资本再生产、平均利润等重点章节题目</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500 text-sm"><i class="fa fa-question-circle mr-1"></i> <span id="junior-count">280</span>题</span>
+                                <button class="btn-primary text-sm px-3 py-1.5 start-practice" data-level="大三">
+                                    开始练习
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 大四题库 -->
+                    <div class="bg-neutral rounded-xl overflow-hidden shadow-sm card-hover">
+                        <div class="h-48 overflow-hidden">
+                            <img src="https://picsum.photos/id/160/600/400" alt="大四政治经济学题库" class="w-full h-full object-cover transition-transform duration-500 hover:scale-110">
+                        </div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xl font-semibold">大四题库</h3>
+                                <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded">综合</span>
+                            </div>
+                            <p class="text-gray-600 mb-4">包含垄断资本主义、经济全球化等综合章节题目</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500 text-sm"><i class="fa fa-question-circle mr-1"></i> <span id="senior-count">260</span>题</span>
+                                <button class="btn-primary text-sm px-3 py-1.5 start-practice" data-level="大四">
+                                    开始练习
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 研究生题库 -->
+                    <div class="bg-neutral rounded-xl overflow-hidden shadow-sm card-hover">
+                        <div class="h-48 overflow-hidden">
+                            <img src="https://picsum.photos/id/180/600/400" alt="研究生政治经济学题库" class="w-full h-full object-cover transition-transform duration-500 hover:scale-110">
+                        </div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xl font-semibold">研究生题库</h3>
+                                <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">高级</span>
+                            </div>
+                            <p class="text-gray-600 mb-4">包含政治经济学前沿理论、学术热点等深度题目</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500 text-sm"><i class="fa fa-question-circle mr-1"></i> <span id="graduate-count">350</span>题</span>
+                                <button class="btn-primary text-sm px-3 py-1.5 start-practice" data-level="研究生">
+                                    开始练习
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 上传题目快捷卡片 -->
+                    <div class="bg-gradient-to-br from-primary/90 to-secondary/90 rounded-xl overflow-hidden shadow-sm card-hover flex flex-col justify-center items-center p-6 text-white cursor-pointer" id="upload-card">
+                        <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-4">
+                            <i class="fa fa-upload text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-center">贡献题目</h3>
+                        <p class="text-white/80 text-center mb-4 text-sm">上传您的政治经济学题目，丰富题库资源</p>
+                        <button class="bg-white text-primary hover:bg-gray-100 px-4 py-2 rounded-md text-sm font-medium transition-all">
+                            立即上传
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 题目练习区域 -->
+        <section id="questions" class="py-16 bg-neutral hidden">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold mb-4">题目练习</h2>
+                    <p class="text-gray-600 max-w-3xl mx-auto" id="practice-level">当前练习：综合题库</p>
+                </div>
+                
+                <!-- 筛选工具栏 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="chapter-filter" class="block text-sm font-medium text-gray-700 mb-1">章节</label>
+                            <select class="input-field" id="chapter-filter">
+                                <option value="">全部章节</option>
+                                <option value="1">第一章 商品与货币</option>
+                                <option value="2">第二章 资本与剩余价值</option>
+                                <option value="3">第三章 资本积累</option>
+                                <option value="4">第四章 资本循环与周转</option>
+                                <option value="5">第五章 社会总资本再生产</option>
+                                <option value="6">第六章 平均利润与生产价格</option>
+                                <option value="7">第七章 垄断资本主义</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="type-filter" class="block text-sm font-medium text-gray-700 mb-1">题型</label>
+                            <select class="input-field" id="type-filter">
+                                <option value="">全部题型</option>
+                                <option value="single">单选题</option>
+                                <option value="multiple">多选题</option>
+                                <option value="judge">判断题</option>
+                                <option value="short">简答题</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="difficulty-filter" class="block text-sm font-medium text-gray-700 mb-1">难度</label>
+                            <select class="input-field" id="difficulty-filter">
+                                <option value="">全部难度</option>
+                                <option value="easy">易</option>
+                                <option value="medium">中</option>
+                                <option value="hard">难</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button class="btn-secondary mr-2" id="reset-filter">重置筛选</button>
+                        <button class="btn-primary" id="apply-filter">应用筛选</button>
+                        <!-- 练习区上传题目按钮 -->
+                        <button id="questions-upload-btn" class="btn-secondary ml-2">
+                            <i class="fa fa-upload mr-1"></i> 上传题目
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 题目练习区 -->
+                <div class="bg-white rounded-lg shadow-sm p-6 md:p-8">
+                    <div class="mb-6 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium" id="question-type-badge">单选题</span>
+                            <span class="ml-3 text-gray-500 text-sm" id="question-difficulty">难度：中等</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="text-gray-500 hover:text-primary p-2 rounded-full hover:bg-gray-100 transition-colors" title="收藏题目">
+                                <i class="fa fa-star-o"></i>
+                            </button>
+                            <button class="text-gray-500 hover:text-red-500 p-2 rounded-full hover:bg-gray-100 transition-colors wrong-question-btn" title="标记为错题">
+                                <i class="fa fa-flag-o"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 题目内容 -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-medium mb-4" id="question-content">1. 商品的二因素是指（ ）</h3>
+                        <div class="space-y-3 ml-2" id="question-options">
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input id="option-1" name="question" type="radio" class="w-4 h-4 text-primary focus:ring-primary border-gray-300">
+                                </div>
+                                <label for="option-1" class="ml-3 text-gray-700">
+                                    A. 使用价值和交换价值
+                                </label>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input id="option-2" name="question" type="radio" class="w-4 h-4 text-primary focus:ring-primary border-gray-300">
+                                </div>
+                                <label for="option-2" class="ml-3 text-gray-700">
+                                    B. 使用价值和价值
+                                </label>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input id="option-3" name="question" type="radio" class="w-4 h-4 text-primary focus:ring-primary border-gray-300">
+                                </div>
+                                <label for="option-3" class="ml-3 text-gray-700">
+                                    C. 价值和交换价值
+                                </label>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input id="option-4" name="question" type="radio" class="w-4 h-4 text-primary focus:ring-primary border-gray-300">
+                                </div>
+                                <label for="option-4" class="ml-3 text-gray-700">
+                                    D. 价值和价格
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 简答题输入框 -->
+                        <div id="short-answer-container" class="hidden mt-4">
+                            <textarea id="short-answer-input" rows="4" class="input-field" placeholder="请输入答案..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- 答案和解析区 - 默认隐藏 -->
+                    <div id="answer解析" class="hidden mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="mb-3">
+                            <h4 class="font-medium text-green-700 mb-1" id="correct-answer">正确答案：B</h4>
+                            <p class="text-gray-700" id="answer-explanation">解析：商品是用来交换的劳动产品，具有使用价值和价值两个因素。使用价值是商品的自然属性，价值是商品的社会属性，是商品的本质属性。</p>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-1">考点：</h4>
+                            <div class="flex flex-wrap gap-2" id="question-tags">
+                                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">商品二因素</span>
+                                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">商品的本质属性</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+                        <button class="btn-secondary" id="prev-question-btn">上一题</button>
+                        <div class="flex space-x-3">
+                            <button id="check-answer-btn" class="btn-primary">
+                                <i class="fa fa-check mr-1"></i> 提交答案
+                            </button>
+                            <button id="next-question-btn" class="btn-secondary hidden">
+                                <i class="fa fa-arrow-right mr-1"></i> 下一题
+                            </button>
+                        </div>
+                        <button class="btn-secondary" id="next-question-btn-direct">下一题</button>
+                    </div>
+                </div>
+                
+                <!-- 进度指示器 -->
+                <div class="mt-8 bg-white rounded-lg shadow-sm p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-medium">练习进度</h4>
+                        <span class="text-sm text-gray-500" id="progress-text">1/20题</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-primary h-2.5 rounded-full" id="progress-bar" style="width: 5%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 错题记录区域 -->
+        <section id="wrong-questions" class="py-16 bg-neutral hidden">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold mb-4">错题记录</h2>
+                    <p class="text-gray-600 max-w-3xl mx-auto">集中查看您做错的题目，针对性复习薄弱知识点</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 md:p-8">
+                    <!-- 错题统计 -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-neutral rounded-lg p-4">
+                            <div class="text-3xl font-bold text-red-500 mb-1" id="wrong-question-count">0</div>
+                            <div class="text-gray-600">总错题数</div>
+                        </div>
+                        <div class="bg-neutral rounded-lg p-4">
+                            <div class="text-3xl font-bold text-orange-500 mb-1" id="mastered-question-count">0</div>
+                            <div class="text-gray-600">已掌握</div>
+                        </div>
+                        <div class="bg-neutral rounded-lg p-4">
+                            <div class="text-3xl font-bold text-blue-500 mb-1" id="remaining-question-count">0</div>
+                            <div class="text-gray-600">待复习</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 错题筛选 -->
+                    <div class="mb-8 p-4 bg-neutral rounded-lg">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="wrong-chapter-filter" class="block text-sm font-medium text-gray-700 mb-1">章节</label>
+                                <select class="input-field" id="wrong-chapter-filter">
+                                    <option value="">全部章节</option>
+                                    <option value="1">第一章 商品与货币</option>
+                                    <option value="2">第二章 资本与剩余价值</option>
+                                    <option value="3">第三章 资本积累</option>
+                                    <option value="4">第四章 资本循环与周转</option>
+                                    <option value="5">第五章 社会总资本再生产</option>
+                                    <option value="6">第六章 平均利润与生产价格</option>
+                                    <option value="7">第七章 垄断资本主义</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="wrong-type-filter" class="block text-sm font-medium text-gray-700 mb-1">题型</label>
+                                <select class="input-field" id="wrong-type-filter">
+                                    <option value="">全部题型</option>
+                                    <option value="single">单选题</option>
+                                    <option value="multiple">多选题</option>
+                                    <option value="judge">判断题</option>
+                                    <option value="short">简答题</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="wrong-status-filter" class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                                <select class="input-field" id="wrong-status-filter">
+                                    <option value="">全部状态</option>
+                                    <option value="unmastered">待复习</option>
+                                    <option value="mastered">已掌握</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-end">
+                            <button class="btn-secondary mr-2" id="reset-wrong-filter">重置筛选</button>
+                            <button class="btn-primary" id="apply-wrong-filter">应用筛选</button>
+                            <button class="btn-secondary ml-2" id="clear-wrong-questions">
+                                <i class="fa fa-trash mr-1"></i> 清空错题
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 错题列表 -->
+                    <div class="space-y-6" id="wrong-questions-list">
+                        <!-- 错题记录将通过JavaScript动态生成 -->
+                    </div>
+                    
+                    <!-- 无错题提示 -->
+                    <div id="no-wrong-questions" class="hidden text-center py-16">
+                        <i class="fa fa-check-circle text-5xl text-green-400 mb-4"></i>
+                        <p class="text-gray-500">恭喜您，目前没有错题记录</p>
+                        <button class="mt-4 btn-primary" id="start-practice-from-wrong">
+                            <i class="fa fa-play-circle mr-1"></i> 开始练习
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 上传题目区域 -->
+        <section id="upload" class="py-16 bg-neutral hidden">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold mb-4">上传题目</h2>
+                    <p class="text-gray-600 max-w-3xl mx-auto">贡献您的题目，丰富题库资源，帮助更多学习者</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 md:p-8 max-w-4xl mx-auto">
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center">
+                            <i class="fa fa-file-text-o text-primary mr-2"></i> 单题上传
+                        </h3>
+                        
+                        <form id="question-upload-form">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label for="question-level" class="block text-sm font-medium text-gray-700 mb-1">适用学段 <span class="text-red-500">*</span></label>
+                                    <select id="question-level" class="input-field" required>
+                                        <option value="">请选择学段</option>
+                                        <option value="freshman">大一</option>
+                                        <option value="sophomore">大二</option>
+                                        <option value="junior">大三</option>
+                                        <option value="senior">大四</option>
+                                        <option value="graduate">研究生</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label for="question-chapter" class="block text-sm font-medium text-gray-700 mb-1">所属章节 <span class="text-red-500">*</span></label>
+                                    <select id="question-chapter" class="input-field" required>
+                                        <option value="">请选择章节</option>
+                                        <option value="1">第一章 商品与货币</option>
+                                        <option value="2">第二章 资本与剩余价值</option>
+                                        <option value="3">第三章 资本积累</option>
+                                        <option value="4">第四章 资本循环与周转</option>
+                                        <option value="5">第五章 社会总资本再生产</option>
+                                        <option value="6">第六章 平均利润与生产价格</option>
+                                        <option value="7">第七章 垄断资本主义</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label for="question-type-upload" class="block text-sm font-medium text-gray-700 mb-1">题目类型 <span class="text-red-500">*</span></label>
+                                    <select id="question-type-upload" class="input-field" required>
+                                        <option value="">请选择题型</option>
+                                        <option value="single">单选题</option>
+                                        <option value="multiple">多选题</option>
+                                        <option value="judge">判断题</option>
+                                        <option value="short">简答题</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label for="question-difficulty-upload" class="block text-sm font-medium text-gray-700 mb-1">难度等级 <span class="text-red-500">*</span></label>
+                                    <select id="question-difficulty-upload" class="input-field" required>
+                                        <option value="">请选择难度</option>
+                                        <option value="easy">易</option>
+                                        <option value="medium">中</option>
+                                        <option value="hard">难</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label for="question-content-upload" class="block text-sm font-medium text-gray-700 mb-1">题干内容 <span class="text-red-500">*</span></label>
+                                <textarea id="question-content-upload" rows="3" class="input-field" placeholder="请输入题目内容..." required></textarea>
+                                
+                                <!-- 重复题目提示 -->
+                                <div id="duplicate-warning" class="hidden mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm">
+                                    <i class="fa fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                                    <span>检测到相似题目，是否继续上传？</span>
+                                    <div class="mt-2 space-y-2 max-h-40 overflow-y-auto pr-2">
+                                        <div id="similar-questions-list" class="text-sm"></div>
+                                    </div>
+                                    <div class="mt-2 flex justify-end space-x-2">
+                                        <button type="button" id="cancel-upload-btn" class="btn-secondary text-xs px-3 py-1">取消</button>
+                                        <button type="button" id="continue-upload-btn" class="btn-primary text-xs px-3 py-1">继续上传</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">题干图片（可选）</label>
+                                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                                    <div class="space-y-1 text-center">
+                                        <i class="fa fa-cloud-upload text-gray-400 text-3xl mb-2"></i>
+                                        <div class="flex text-sm text-gray-600">
+                                            <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary/80">
+                                                上传图片
+                                                <input id="file-upload" name="file-upload" type="file" class="sr-only" accept="image/*">
+                                            </label>
+                                            <p class="pl-1">或拖放文件</p>
+                                        </div>
+                                        <p class="text-xs text-gray-500">支持 JPG, PNG 格式，最大 5MB</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 选项区域 - 根据题型动态显示 -->
+                            <div id="options-container-upload" class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-3">选项内容 <span class="text-red-500">*</span></label>
+                                
+                                <div class="space-y-4" id="options-fields-upload">
+                                    <div class="flex items-center">
+                                        <span class="w-6 text-center font-medium text-gray-700">A.</span>
+                                        <input type="text" class="input-field ml-2" placeholder="选项A内容">
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="w-6 text-center font-medium text-gray-700">B.</span>
+                                        <input type="text" class="input-field ml-2" placeholder="选项B内容">
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="w-6 text-center font-medium text-gray-700">C.</span>
+                                        <input type="text" class="input-field ml-2" placeholder="选项C内容">
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="w-6 text-center font-medium text-gray-700">D.</span>
+                                        <input type="text" class="input-field ml-2" placeholder="选项D内容">
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">正确答案 <span class="text-red-500">*</span></label>
+                                    <select id="correct-answer-upload" class="input-field">
+                                        <option value="">请选择正确答案</option>
+                                        <option value="A">A</option>
+                                        <option value="B">B</option>
+                                        <option value="C">C</option>
+                                        <option value="D">D</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label for="question-explanation-upload" class="block text-sm font-medium text-gray-700 mb-1">答案解析 <span class="text-red-500">*</span></label>
+                                <textarea id="question-explanation-upload" rows="3" class="input-field" placeholder="请输入答案解析..." required></textarea>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">考点标签（可选）</label>
+                                <div class="flex flex-wrap gap-2 mb-2" id="tags-container-upload">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        商品二因素
+                                        <button type="button" class="ml-1 inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-blue-200 text-blue-600 hover:bg-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+                                            <span class="sr-only">移除标签</span>
+                                            <i class="fa fa-times text-xs"></i>
+                                        </button>
+                                    </span>
+                                </div>
+                                <div class="flex">
+                                    <input type="text" id="new-tag-upload" class="input-field mr-2" placeholder="输入考点标签，按回车添加">
+                                    <button type="button" id="add-tag-btn-upload" class="btn-secondary">添加</button>
+                                </div>
+                            </div>
+                            
+                            <!-- 题目预览 -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-3">题目预览</label>
+                                <div class="question-preview" id="question-preview">
+                                    <p class="text-gray-500 italic">请填写题目内容以预览</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center space-x-3 pt-4 border-t border-gray-200">
+                                <div class="flex items-center">
+                                    <input id="auto-publish" type="checkbox" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mr-2">
+                                    <label for="auto-publish" class="text-sm text-gray-700">
+                                        直接发布到题库（无需审核）
+                                    </label>
+                                </div>
+                                <div>
+                                    <button type="reset" class="btn-secondary mr-2">重置</button>
+                                    <button type="submit" class="btn-primary">
+                                        <i class="fa fa-upload mr-1"></i> 上传题目
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="border-t border-gray-200 pt-8">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center">
+                            <i class="fa fa-files-o text-primary mr-2"></i> 批量上传
+                        </h3>
+                        
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                            <i class="fa fa-file-excel-o text-green-500 text-5xl mb-4"></i>
+                            <h4 class="text-lg font-medium mb-2">通过Excel模板批量上传题目</h4>
+                            <p class="text-gray-600 mb-6 max-w-md mx-auto">下载模板，按照格式填写题目内容，支持一次性上传多个题目</p>
+                            <div class="flex flex-col sm:flex-row justify-center gap-3">
+                                <a href="#" class="btn-secondary flex items-center justify-center">
+                                    <i class="fa fa-download mr-1"></i> 下载模板
+                                </a>
+                                <label for="batch-upload" class="btn-primary flex items-center justify-center cursor-pointer">
+                                    <i class="fa fa-upload mr-1"></i> 选择文件上传
+                                    <input id="batch-upload" type="file" class="sr-only" accept=".xlsx,.xls">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 待审核题目区域 -->
+        <section id="pending" class="py-16 bg-neutral hidden">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold mb-4">待审核题目</h2>
+                    <p class="text-gray-600 max-w-3xl mx-auto">管理和审核用户上传的题目，确保题库质量</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 md:p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-semibold">题目审核列表</h3>
+                        <div class="flex items-center">
+                            <label for="pending-filter" class="block text-sm font-medium text-gray-700 mr-2">筛选：</label>
+                            <select id="pending-filter" class="input-field w-auto">
+                                <option value="all">全部状态</option>
+                                <option value="pending">待审核</option>
+                                <option value="approved">已通过</option>
+                                <option value="rejected">未通过</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">题目内容</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">题型</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学段</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上传者</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="pending-questions-list">
+                                <!-- 待审核题目将通过JavaScript动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-between items-center">
+                        <div class="text-sm text-gray-700">
+                            显示 <span class="font-medium">1</span> 到 <span class="font-medium">5</span> 条，共 <span class="font-medium" id="pending-total">0</span> 条记录
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="btn-secondary px-3 py-1 text-sm" disabled>上一页</button>
+                            <button class="btn-primary px-3 py-1 text-sm">1</button>
+                            <button class="btn-secondary px-3 py-1 text-sm">2</button>
+                            <button class="btn-secondary px-3 py-1 text-sm">3</button>
+                            <button class="btn-secondary px-3 py-1 text-sm">下一页</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 做题记录区域 -->
+        <section id="records" class="py-16 bg-neutral hidden">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold mb-4">做题记录</h2>
+                    <p class="text-gray-600 max-w-3xl mx-auto">查看您的练习历史和答题情况，针对性巩固知识点</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 md:p-8">
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold mb-6">练习统计</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-neutral rounded-lg p-4 text-center">
+                                <div class="text-3xl font-bold text-primary mb-1">248</div>
+                                <div class="text-gray-600">总做题数</div>
+                            </div>
+                            <div class="bg-neutral rounded-lg p-4 text-center">
+                                <div class="text-3xl font-bold text-green-600 mb-1">78%</div>
+                                <div class="text-gray-600">正确率</div>
+                            </div>
+                            <div class="bg-neutral rounded-lg p-4 text-center">
+                                <div class="text-3xl font-bold text-orange-500 mb-1">42</div>
+                                <div class="text-gray-600">收藏题目</div>
+                            </div>
+                            <div class="bg-neutral rounded-lg p-4 text-center">
+                                <div class="text-3xl font-bold text-red-500 mb-1">54</div>
+                                <div class="text-gray-600">错题数</div>
+                            </div>
+                        </div>
+                        
+                        <div class="h-64">
+                            <canvas id="practice-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-gray-200 pt-8">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold">最近练习记录</h3>
+                            <div class="flex items-center">
+                                <label for="record-filter" class="block text-sm font-medium text-gray-700 mr-2">筛选：</label>
+                                <select id="record-filter" class="input-field w-auto">
+                                    <option value="all">全部记录</option>
+                                    <option value="today">今日</option>
+                                    <option value="week">本周</option>
+                                    <option value="month">本月</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">练习时间</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">题库</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">题目数量</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">正确率</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2023-06-15 14:30</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">大二题库 - 资本积累</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">20题</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">85%</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <a href="#" class="text-primary hover:text-primary/80 mr-3">查看详情</a>
+                                            <a href="#" class="text-blue-600 hover:text-blue-800">重做</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2023-06-14 09:15</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">综合题库 - 商品与货币</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">15题</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">93%</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <a href="#" class="text-primary hover:text-primary/80 mr-3">查看详情</a>
+                                            <a href="#" class="text-blue-600 hover:text-blue-800">重做</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2023-06-12 16:45</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">大二题库 - 资本与剩余价值</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">25题</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">68%</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <a href="#" class="text-primary hover:text-primary/80 mr-3">查看详情</a>
+                                            <a href="#" class="text-blue-600 hover:text-blue-800">重做</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2023-06-10 19:20</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">大一题库 - 商品与货币</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">30题</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">80%</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <a href="#" class="text-primary hover:text-primary/80 mr-3">查看详情</a>
+                                            <a href="#" class="text-blue-600 hover:text-blue-800">重做</a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- 做过的题目列表 -->
+                        <div class="mt-10">
+                            <h3 class="text-xl font-semibold mb-6">做过的题目</h3>
+                            
+                            <div class="space-y-4" id="completed-questions-list">
+                                <!-- 做过的题目将通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex justify-between items-center">
+                            <div class="text-sm text-gray-700">
+                                显示 <span class="font-medium">1</span> 到 <span class="font-medium">4</span> 条，共 <span class="font-medium">12</span> 条记录
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="btn-secondary px-3 py-1 text-sm" disabled>上一页</button>
+                                <button class="btn-primary px-3 py-1 text-sm">1</button>
+                                <button class="btn-secondary px-3 py-1 text-sm">2</button>
+                                <button class="btn-secondary px-3 py-1 text-sm">3</button>
+                                <button class="btn-secondary px-3 py-1 text-sm">下一页</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 浏览记录区域 -->
+        <section id="history" class="py-16 bg-neutral hidden">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold mb-4">浏览记录</h2>
+                    <p class="text-gray-600 max-w-3xl mx-auto">查看您的练习进度，继续未完成的练习或重做题目</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm p-6 md:p-8">
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold mb-6">未完成的练习</h3>
+                        
+                        <div class="space-y-6" id="unfinished-practices">
+                            <!-- 未完成的练习将通过JavaScript动态生成 -->
+                        </div>
+                        
+                        <div id="no-unfinished-practices" class="hidden text-center py-12">
+                            <i class="fa fa-check-circle text-5xl text-green-400 mb-4"></i>
+                            <p class="text-gray-500">您没有未完成的练习</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-gray-200 pt-8">
+                        <h3 class="text-xl font-semibold mb-6">最近浏览的题目</h3>
+                        
+                        <div class="space-y-4" id="recently-viewed-questions">
+                            <!-- 最近浏览的题目将通过JavaScript动态生成 -->
+                        </div>
+                        
+                        <div id="no-recent-questions" class="hidden text-center py-12">
+                            <i class="fa fa-history text-5xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500">暂无浏览记录</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 登录模态框 -->
+    <div id="login-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 flex items-center">
+                                <i class="fa fa-sign-in text-primary mr-2"></i> 用户登录
+                            </h3>
+                            <div class="mt-4">
+                                <form id="login-form">
+                                    <div class="mb-4">
+                                        <label for="login-username" class="block text-sm font-medium text-gray-700 mb-1">用户名/手机号</label>
+                                        <input type="text" id="login-username" class="input-field" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                                        <input type="password" id="login-password" class="input-field" required>
+                                    </div>
+                                    <div class="flex items-center justify-between mb-6">
+                                        <div class="flex items-center">
+                                            <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                                            <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+                                                记住我
+                                            </label>
+                                        </div>
+                                        <a href="#" id="forgot-password-link" class="text-sm text-primary hover:text-primary/80">
+                                            忘记密码?
+                                        </a>
+                                    </div>
+                                    <button type="submit" class="btn-primary w-full">
+                                        登录
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <p class="text-center text-sm text-gray-600">
+                        还没有账号? <a href="#" id="switch-to-register" class="font-medium text-primary hover:text-primary/80">
+                            立即注册
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div id="register-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 flex items-center">
+                                <i class="fa fa-user-plus text-primary mr-2"></i> 用户注册
+                            </h3>
+                            <div class="mt-4">
+                                <form id="register-form">
+                                    <div class="mb-4">
+                                        <label for="register-username" class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                                        <input type="text" id="register-username" class="input-field" placeholder="请设置用户名" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="register-phone" class="block text-sm font-medium text-gray-700 mb-1">手机号</label>
+                                        <input type="tel" id="register-phone" class="input-field" placeholder="请输入手机号" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="register-password" class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                                        <input type="password" id="register-password" class="input-field" placeholder="请设置密码（至少6位）" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="register-confirm-password" class="block text-sm font-medium text-gray-700 mb-1">确认密码</label>
+                                        <input type="password" id="register-confirm-password" class="input-field" placeholder="请再次输入密码" required>
+                                    </div>
+                                    <div class="mb-6">
+                                        <label for="register-role" class="block text-sm font-medium text-gray-700 mb-1">身份</label>
+                                        <select id="register-role" class="input-field" required>
+                                            <option value="">请选择您的身份</option>
+                                            <option value="student">学生</option>
+                                            <option value="teacher">教师</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn-primary w-full">
+                                        注册
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <p class="text-center text-sm text-gray-600">
+                        已有账号? <a href="#" id="switch-to-login" class="font-medium text-primary hover:text-primary/80">
+                            立即登录
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 其他模态框保持不变 -->
+    <div id="forgot-password-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 flex items-center">
+                                <i class="fa fa-lock text-primary mr-2"></i> 找回密码
+                            </h3>
+                            <div class="mt-4">
+                                <form id="forgot-password-form">
+                                    <div class="mb-4">
+                                        <label for="forgot-phone" class="block text-sm font-medium text-gray-700 mb-1">手机号</label>
+                                        <input type="tel" id="forgot-phone" class="input-field" placeholder="请输入注册的手机号" required>
+                                    </div>
+                                    <div class="mb-6">
+                                        <div class="flex">
+                                            <input type="text" id="verify-code" class="input-field mr-2" placeholder="验证码" required>
+                                            <button type="button" id="send-code-btn" class="btn-secondary whitespace-nowrap">
+                                                获取验证码
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mb-6">
+                                        <label for="new-password" class="block text-sm font-medium text-gray-700 mb-1">新密码</label>
+                                        <input type="password" id="new-password" class="input-field" placeholder="请设置新密码" required>
+                                    </div>
+                                    <button type="submit" class="btn-primary w-full">
+                                        重置密码
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <p class="text-center text-sm text-gray-600">
+                        想起密码了? <a href="#" id="back-to-login" class="font-medium text-primary hover:text-primary/80">
+                            返回登录
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成功提示模态框 -->
+    <div id="success-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full">
+                <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4 text-center">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                        <i class="fa fa-check text-2xl text-green-600"></i>
+                    </div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="success-title">操作成功</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500" id="success-message">
+                            您的操作已成功完成。
+                        </p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="success-confirm" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:ml-3 sm:w-auto sm:text-sm">
+                        确定
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认提示模态框 -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full">
+                <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4 text-center">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                        <i class="fa fa-exclamation-triangle text-2xl text-yellow-600"></i>
+                    </div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="confirm-title">确认操作</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500" id="confirm-message">
+                            您确定要执行此操作吗？
+                        </p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="confirm-ok" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:ml-3 sm:w-auto sm:text-sm">
+                        确定
+                    </button>
+                    <button id="confirm-cancel" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 题目详情模态框 -->
+    <div id="question-detail-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 flex items-center">
+                                <i class="fa fa-question-circle text-primary mr-2"></i> 题目详情
+                            </h3>
+                            <div class="mt-4" id="question-detail-content">
+                                <!-- 题目详情内容将通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="close-detail-modal" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:ml-3 sm:w-auto sm:text-sm">
+                        关闭
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fa fa-book text-primary text-2xl mr-2"></i>
+                        <span class="text-xl font-bold">政治经济学题库</span>
+                    </div>
+                    <p class="text-gray-400 mb-4">专注于政治经济学学习与练习，提供从本科到研究生阶段的全系列题目资源。</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-primary transition-colors"><i class="fa fa-weixin text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-primary transition-colors"><i class="fa fa-weibo text-xl"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">快速链接</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#home" class="text-gray-400 hover:text-white transition-colors">首页</a></li>
+                        <li><a href="#questions" class="text-gray-400 hover:text-white transition-colors">题库练习</a></li>
+                        <li><a href="#upload" class="text-gray-400 hover:text-white transition-colors">上传题目</a></li>
+                        <li><a href="#records" class="text-gray-400 hover:text-white transition-colors">做题记录</a></li>
+                        <li><a href="#wrong-questions" class="text-gray-400 hover:text-white transition-colors">错题记录</a></li>
+                        <li><a href="#history" class="text-gray-400 hover:text-white transition-colors">浏览记录</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-10 pt-6 text-center text-gray-500">
+                <p>© 2025 政治经济学题库系统 版权所有</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 等待DOM完全加载后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 全局数据存储
+            const appData = {
+                // 题目数据库 - 用于模拟题目数据
+                questionDatabase: [
+                    {
+                        id: 1,
+                        content: "1. 商品的二因素是指（ ）",
+                        type: "single",
+                        difficulty: "medium",
+                        options: [
+                            "A. 使用价值和交换价值",
+                            "B. 使用价值和价值",
+                            "C. 价值和交换价值",
+                            "D. 价值和价格"
+                        ],
+                        correctAnswer: "B",
+                        explanation: "解析：商品是用来交换的劳动产品，具有使用价值和价值两个因素。使用价值是商品的自然属性，价值是商品的社会属性，是商品的本质属性。",
+                        tags: ["商品二因素", "商品的本质属性"],
+                        chapter: 1,
+                        level: "freshman"
+                    },
+                    {
+                        id: 2,
+                        content: "2. 货币的本质是（ ）",
+                        type: "single",
+                        difficulty: "easy",
+                        options: [
+                            "A. 等价物",
+                            "B. 一般等价物",
+                            "C. 交换价值",
+                            "D. 价值尺度"
+                        ],
+                        correctAnswer: "B",
+                        explanation: "解析：货币的本质是固定地充当一般等价物的特殊商品，它体现着商品生产者之间的社会经济关系。",
+                        tags: ["货币的本质", "一般等价物"],
+                        chapter: 1,
+                        level: "freshman"
+                    },
+                    {
+                        id: 3,
+                        content: "3. 资本积累的实质是（ ）",
+                        type: "single",
+                        difficulty: "medium",
+                        options: [
+                            "A. 资本家为了社会进步",
+                            "B. 资本家省吃俭用的结果",
+                            "C. 剩余价值的资本化",
+                            "D. 资本的简单再生产"
+                        ],
+                        correctAnswer: "C",
+                        explanation: "解析：资本积累的实质是资本家将其无偿占有的剩余价值的一部分再转化为资本，用来购买追加的生产资料和劳动力，扩大生产规模，从而进一步无偿地占有更多的剩余价值。",
+                        tags: ["资本积累", "剩余价值"],
+                        chapter: 3,
+                        level: "sophomore"
+                    },
+                    {
+                        id: 4,
+                        type: "multiple",
+                        difficulty: "hard",
+                        content: "4. 下列关于剩余价值的说法正确的有（ ）",
+                        options: [
+                            "A. 剩余价值是由雇佣工人的剩余劳动创造的",
+                            "B. 剩余价值是资本积累的唯一源泉",
+                            "C. 剩余价值在生产领域中产生",
+                            "D. 剩余价值不能在流通领域中产生，但又离不开流通领域"
+                        ],
+                        correctAnswer: "ABCD",
+                        explanation: "解析：剩余价值是雇佣工人所创造的并被资本家无偿占有的超过劳动力价值的那部分价值，它是雇佣工人剩余劳动的凝结，体现了资本家和雇佣工人之间剥削和被剥削的关系。",
+                        tags: ["剩余价值", "资本积累"],
+                        chapter: 2,
+                        level: "sophomore"
+                    },
+                    {
+                        id: 5,
+                        type: "judge",
+                        difficulty: "easy",
+                        content: "5. 价值规律是商品经济的基本规律。（ ）",
+                        options: ["正确", "错误"],
+                        correctAnswer: "正确",
+                        explanation: "解析：价值规律是商品生产和商品交换的基本经济规律。即商品的价值量取决于社会必要劳动时间，商品按照价值相等的原则互相交换。",
+                        tags: ["价值规律", "商品经济"],
+                        chapter: 1,
+                        level: "freshman"
+                    }
+                ],
+                pendingQuestions: [],
+                completedQuestions: [],
+                practiceRecords: [],
+                browsingHistory: [],
+                wrongQuestions: [], // 新增错题记录数组
+                currentUser: null,
+                questionIdCounter: 6
+            };
+            
+            // 当前题目标记和筛选条件
+            let currentQuestionIndex = 0;
+            let filteredQuestions = [...appData.questionDatabase];
+            let currentFilters = {
+                chapter: "",
+                type: "",
+                difficulty: ""
+            };
+            let currentPracticeSessionId = null;
+            
+            // DOM元素引用
+            const loginBtn = document.getElementById('login-btn');
+            const registerBtn = document.getElementById('register-btn');
+            const mobileLoginBtn = document.getElementById('mobile-login-btn');
+            const mobileRegisterBtn = document.getElementById('mobile-register-btn');
+            const loginModal = document.getElementById('login-modal');
+            const registerModal = document.getElementById('register-modal');
+            const forgotPasswordModal = document.getElementById('forgot-password-modal');
+            const successModal = document.getElementById('success-modal');
+            const confirmModal = document.getElementById('confirm-modal'); // 新增确认模态框
+            const successTitle = document.getElementById('success-title');
+            const successMessage = document.getElementById('success-message');
+            const confirmTitle = document.getElementById('confirm-title'); // 新增确认标题
+            const confirmMessage = document.getElementById('confirm-message'); // 新增确认消息
+            const successConfirm = document.getElementById('success-confirm');
+            const confirmOk = document.getElementById('confirm-ok'); // 新增确认按钮
+            const confirmCancel = document.getElementById('confirm-cancel'); // 新增取消按钮
+            const switchToRegister = document.getElementById('switch-to-register');
+            const switchToLogin = document.getElementById('switch-to-login');
+            const forgotPasswordLink = document.getElementById('forgot-password-link');
+            const backToLogin = document.getElementById('back-to-login');
+            const sendCodeBtn = document.getElementById('send-code-btn');
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const userMenuButton = document.getElementById('user-menu-button');
+            const userDropdown = document.getElementById('user-dropdown');
+            const logoutBtn = document.getElementById('logout-btn');
+            const startPracticeBtn = document.getElementById('start-practice-btn');
+            const browseQuestionsBtn = document.getElementById('browse-questions-btn');
+            const checkAnswerBtn = document.getElementById('check-answer-btn');
+            const nextQuestionBtn = document.getElementById('next-question-btn');
+            const nextQuestionBtnDirect = document.getElementById('next-question-btn-direct');
+            const prevQuestionBtn = document.getElementById('prev-question-btn');
+            const answer解析 = document.getElementById('answer解析');
+            const questionTypeSelect = document.getElementById('question-type-upload');
+            const optionsContainer = document.getElementById('options-container-upload');
+            const addTagBtn = document.getElementById('add-tag-btn-upload');
+            const newTagInput = document.getElementById('new-tag-upload');
+            const tagsContainer = document.getElementById('tags-container-upload');
+            const userButtons = document.getElementById('user-buttons');
+            const userMenu = document.getElementById('user-menu');
+            const uploadLink = document.getElementById('upload-link');
+            const recordsLink = document.getElementById('records-link');
+            const pendingLink = document.getElementById('pending-link');
+            const historyLink = document.getElementById('history-link');
+            const wrongQuestionsLink = document.getElementById('wrong-questions-link'); // 新增错题记录链接
+            const mobileUploadLink = document.getElementById('mobile-upload-link');
+            const mobileNavUpload = document.getElementById('mobile-nav-upload');
+            const mobileNavRecords = document.getElementById('mobile-nav-records');
+            const mobileNavPending = document.getElementById('mobile-nav-pending');
+            const mobileNavHistory = document.getElementById('mobile-nav-history');
+            const mobileNavWrongQuestions = document.getElementById('mobile-nav-wrong-questions'); // 新增移动端错题记录
+            const mobilePendingLink = document.getElementById('mobile-pending-link');
+            const mobileHistoryLink = document.getElementById('mobile-history-link');
+            const practiceLevel = document.getElementById('practice-level');
+            const currentUsername = document.getElementById('current-username');
+            const userRole = document.getElementById('user-role');
+            const questionPreview = document.getElementById('question-preview');
+            const autoPublishCheckbox = document.getElementById('auto-publish');
+            const pendingQuestionsList = document.getElementById('pending-questions-list');
+            const pendingTotal = document.getElementById('pending-total');
+            const questionDetailModal = document.getElementById('question-detail-modal');
+            const questionDetailContent = document.getElementById('question-detail-content');
+            const closeDetailModal = document.getElementById('close-detail-modal');
+            
+            // 上传题目通道元素
+            const quickUploadBtn = document.getElementById('quick-upload-btn');
+            const homeUploadBtn = document.getElementById('home-upload-btn');
+            const uploadCard = document.getElementById('upload-card');
+            const questionsUploadBtn = document.getElementById('questions-upload-btn');
+            const mobileQuickUpload = document.getElementById('mobile-quick-upload');
+            
+            // 题目数量统计元素
+            const freshmanCount = document.getElementById('freshman-count');
+            const sophomoreCount = document.getElementById('sophomore-count');
+            const juniorCount = document.getElementById('junior-count');
+            const seniorCount = document.getElementById('senior-count');
+            const graduateCount = document.getElementById('graduate-count');
+            
+            // 筛选相关元素
+            const applyFilterBtn = document.getElementById('apply-filter');
+            const resetFilterBtn = document.getElementById('reset-filter');
+            const chapterFilter = document.getElementById('chapter-filter');
+            const typeFilter = document.getElementById('type-filter');
+            const difficultyFilter = document.getElementById('difficulty-filter');
+            
+            // 错题记录相关元素
+            const wrongQuestionsList = document.getElementById('wrong-questions-list');
+            const wrongQuestionCount = document.getElementById('wrong-question-count');
+            const masteredQuestionCount = document.getElementById('mastered-question-count');
+            const remainingQuestionCount = document.getElementById('remaining-question-count');
+            const noWrongQuestions = document.getElementById('no-wrong-questions');
+            const wrongChapterFilter = document.getElementById('wrong-chapter-filter');
+            const wrongTypeFilter = document.getElementById('wrong-type-filter');
+            const wrongStatusFilter = document.getElementById('wrong-status-filter');
+            const resetWrongFilterBtn = document.getElementById('reset-wrong-filter');
+            const applyWrongFilterBtn = document.getElementById('apply-wrong-filter');
+            const clearWrongQuestionsBtn = document.getElementById('clear-wrong-questions');
+            const startPracticeFromWrongBtn = document.getElementById('start-practice-from-wrong');
+            const wrongQuestionBtn = document.querySelector('.wrong-question-btn');
+            
+            // 题目相关元素
+            const questionContent = document.getElementById('question-content');
+            const questionOptions = document.getElementById('question-options');
+            const shortAnswerContainer = document.getElementById('short-answer-container');
+            const shortAnswerInput = document.getElementById('short-answer-input');
+            const questionTypeBadge = document.getElementById('question-type-badge');
+            const questionDifficulty = document.getElementById('question-difficulty');
+            const correctAnswerEl = document.getElementById('correct-answer');
+            const answerExplanation = document.getElementById('answer-explanation');
+            const questionTags = document.getElementById('question-tags');
+            const progressText = document.getElementById('progress-text');
+            const progressBar = document.getElementById('progress-bar');
+            
+            // 搜索相关元素
+            const globalSearchInput = document.getElementById('global-search');
+            const mobileGlobalSearchInput = document.getElementById('mobile-global-search');
+            const searchButton = document.getElementById('search-button');
+            const mobileSearchButton = document.getElementById('mobile-search-button');
+            const searchContentCheckbox = document.getElementById('search-content');
+            const searchTagsCheckbox = document.getElementById('search-tags');
+            const searchExplanationCheckbox = document.getElementById('search-explanation');
+            const mobileSearchContentCheckbox = document.getElementById('mobile-search-content');
+            const mobileSearchTagsCheckbox = document.getElementById('mobile-search-tags');
+            const searchResultsSection = document.getElementById('search-results');
+            const searchQueryDisplay = document.getElementById('search-query-display');
+            const searchResultsList = document.getElementById('search-results-list');
+            const noSearchResults = document.getElementById('no-search-results');
+            const searchResultFilter = document.getElementById('search-result-filter');
+            const searchKeywordDisplay = document.getElementById('search-keyword-display');
+            const searchResultCount = document.getElementById('search-result-count');
+            
+            // 做题记录相关元素
+            const completedQuestionsList = document.getElementById('completed-questions-list');
+            
+            // 浏览记录相关元素
+            const unfinishedPractices = document.getElementById('unfinished-practices');
+            const noUnfinishedPractices = document.getElementById('no-unfinished-practices');
+            const recentlyViewedQuestions = document.getElementById('recently-viewed-questions');
+            const noRecentQuestions = document.getElementById('no-recent-questions');
+            
+            // 重复题目检测相关元素
+            const questionContentUpload = document.getElementById('question-content-upload');
+            const duplicateWarning = document.getElementById('duplicate-warning');
+            const similarQuestionsList = document.getElementById('similar-questions-list');
+            const cancelUploadBtn = document.getElementById('cancel-upload-btn');
+            const continueUploadBtn = document.getElementById('continue-upload-btn');
+            const questionUploadForm = document.getElementById('question-upload-form');
+            
+            // 导航链接
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section[id]');
+            
+            // 表单引用
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const forgotPasswordForm = document.getElementById('forgot-password-form');
+            
+            // 显示模态框
+            function showModal(modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+            
+            // 隐藏模态框
+            function hideModal(modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+            
+            // 显示成功提示
+            function showSuccess(title, message) {
+                successTitle.textContent = title;
+                successMessage.textContent = message;
+                showModal(successModal);
+            }
+            
+            // 显示确认提示
+            function showConfirm(title, message, confirmCallback, cancelCallback) {
+                confirmTitle.textContent = title;
+                confirmMessage.textContent = message;
+                
+                // 移除之前的事件监听器
+                confirmOk.removeEventListener('click', handleConfirmOk);
+                confirmCancel.removeEventListener('click', handleConfirmCancel);
+                
+                // 定义临时处理函数
+                function handleConfirmOk() {
+                    hideModal(confirmModal);
+                    if (typeof confirmCallback === 'function') {
+                        confirmCallback();
+                    }
+                }
+                
+                function handleConfirmCancel() {
+                    hideModal(confirmModal);
+                    if (typeof cancelCallback === 'function') {
+                        cancelCallback();
+                    }
+                }
+                
+                // 添加新的事件监听器
+                confirmOk.addEventListener('click', handleConfirmOk);
+                confirmCancel.addEventListener('click', handleConfirmCancel);
+                
+                showModal(confirmModal);
+            }
+            
+            // 切换到登录状态
+            function switchToLoggedInState(user) {
+                appData.currentUser = user;
+                currentUsername.textContent = user.username;
+                userRole.textContent = user.role === 'teacher' ? '教师' : '学生';
+                
+                userButtons.classList.add('hidden');
+                userMenu.classList.remove('hidden');
+                recordsLink.classList.remove('hidden');
+                historyLink.classList.remove('hidden');
+                wrongQuestionsLink.classList.remove('hidden'); // 显示错题记录链接
+                mobileNavRecords.classList.remove('hidden');
+                mobileNavHistory.classList.remove('hidden');
+                mobileNavWrongQuestions.classList.remove('hidden'); // 显示移动端错题记录
+                
+                // 显示所有上传入口
+                quickUploadBtn.classList.remove('hidden');
+                uploadCard.classList.remove('hidden');
+                questionsUploadBtn.classList.remove('hidden');
+                mobileQuickUpload.classList.remove('hidden');
+                
+                // 根据用户角色显示不同权限的菜单
+                if (user.role === 'teacher') {
+                    uploadLink.classList.remove('hidden');
+                    pendingLink.classList.remove('hidden');
+                    mobileUploadLink.classList.remove('hidden');
+                    mobileNavUpload.classList.remove('hidden');
+                    mobilePendingLink.classList.remove('hidden');
+                    mobileNavPending.classList.remove('hidden');
+                    autoPublishCheckbox.disabled = false;
+                } else {
+                    uploadLink.classList.remove('hidden');
+                    mobileUploadLink.classList.remove('hidden');
+                    mobileNavUpload.classList.remove('hidden');
+                    autoPublishCheckbox.checked = false;
+                    autoPublishCheckbox.disabled = true;
+                }
+                
+                // 加载错题记录
+                renderWrongQuestions();
+                
+                showSuccess('登录成功', `欢迎回来，${user.username}！`);
+            }
+            
+            // 切换到未登录状态
+            function switchToLoggedOutState() {
+                appData.currentUser = null;
+                userButtons.classList.remove('hidden');
+                userMenu.classList.add('hidden');
+                uploadLink.classList.add('hidden');
+                recordsLink.classList.add('hidden');
+                historyLink.classList.add('hidden');
+                pendingLink.classList.add('hidden');
+                wrongQuestionsLink.classList.add('hidden'); // 隐藏错题记录链接
+                mobileUploadLink.classList.add('hidden');
+                mobileNavUpload.classList.add('hidden');
+                mobileNavRecords.classList.add('hidden');
+                mobileNavHistory.classList.add('hidden');
+                mobileNavWrongQuestions.classList.add('hidden'); // 隐藏移动端错题记录
+                mobilePendingLink.classList.add('hidden');
+                mobileNavPending.classList.add('hidden');
+                
+                quickUploadBtn.classList.remove('hidden');
+                uploadCard.classList.remove('hidden');
+                questionsUploadBtn.classList.remove('hidden');
+                mobileQuickUpload.classList.remove('hidden');
+            }
+            
+            // 显示指定的部分，隐藏其他部分
+            function showSection(sectionId) {
+                sections.forEach(section => {
+                    if (section.id === sectionId) {
+                        section.classList.remove('hidden');
+                    } else {
+                        section.classList.add('hidden');
+                    }
+                });
+                
+                // 更新导航链接状态
+                navLinks.forEach(link => {
+                    link.classList.remove('text-primary', 'font-semibold');
+                    link.classList.add('text-gray-700');
+                    
+                    if (link.getAttribute('href') === `#${sectionId}`) {
+                        link.classList.remove('text-gray-700');
+                        link.classList.add('text-primary', 'font-semibold');
+                    }
+                });
+                
+                // 如果切换到错题记录页面，重新渲染错题
+                if (sectionId === 'wrong-questions') {
+                    renderWrongQuestions();
+                }
+            }
+            
+            // 开始练习
+            function startPractice() {
+                filteredQuestions = [...appData.questionDatabase];
+                currentQuestionIndex = 0;
+                practiceLevel.textContent = `当前练习：综合题库`;
+                showSection('questions');
+                renderQuestion(filteredQuestions[currentQuestionIndex]);
+                document.getElementById('questions').scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 从错题开始练习
+            function startPracticeFromWrong() {
+                // 获取所有未掌握的错题
+                const unmasteredWrongQuestions = appData.wrongQuestions
+                    .filter(item => !item.mastered)
+                    .map(item => {
+                        // 找到原始题目
+                        const originalQuestion = appData.questionDatabase.find(q => q.id === item.questionId);
+                        return originalQuestion ? { ...originalQuestion } : null;
+                    })
+                    .filter(q => q !== null);
+                
+                if (unmasteredWrongQuestions.length === 0) {
+                    showSuccess('没有可练习的错题', '您的所有错题都已标记为掌握');
+                    return;
+                }
+                
+                filteredQuestions = unmasteredWrongQuestions;
+                currentQuestionIndex = 0;
+                practiceLevel.textContent = `当前练习：错题复习`;
+                showSection('questions');
+                renderQuestion(filteredQuestions[currentQuestionIndex]);
+                document.getElementById('questions').scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 渲染题目
+            function renderQuestion(question) {
+                questionContent.textContent = question.content;
+                
+                let typeText = "单选题";
+                if (question.type === "multiple") typeText = "多选题";
+                if (question.type === "judge") typeText = "判断题";
+                if (question.type === "short") typeText = "简答题";
+                
+                let difficultyText = "难度：易";
+                if (question.difficulty === "medium") difficultyText = "难度：中等";
+                if (question.difficulty === "hard") difficultyText = "难度：难";
+                
+                questionTypeBadge.textContent = typeText;
+                questionDifficulty.textContent = difficultyText;
+                
+                if (question.type === "short") {
+                    questionOptions.classList.add('hidden');
+                    shortAnswerContainer.classList.remove('hidden');
+                    shortAnswerInput.value = '';
+                } else {
+                    questionOptions.classList.remove('hidden');
+                    shortAnswerContainer.classList.add('hidden');
+                    
+                    questionOptions.innerHTML = "";
+                    question.options.forEach((option, index) => {
+                        const optionLetter = question.type === "judge" ? 
+                            (index === 0 ? "正确" : "错误") : 
+                            String.fromCharCode(65 + index);
+                        const optionDiv = document.createElement('div');
+                        optionDiv.className = "flex items-start";
+                        
+                        let inputType = "radio";
+                        if (question.type === "multiple") {
+                            inputType = "checkbox";
+                        }
+                        
+                        optionDiv.innerHTML = `
+                            <div class="flex items-center h-5">
+                                <input id="option-${optionLetter}" name="question" type="${inputType}" class="w-4 h-4 text-primary focus:ring-primary border-gray-300">
+                            </div>
+                            <label for="option-${optionLetter}" class="ml-3 text-gray-700">
+                                ${question.type === "judge" ? '' : `${optionLetter}. `}${option}
+                            </label>
+                        `;
+                        
+                        questionOptions.appendChild(optionDiv);
+                    });
+                }
+                
+                correctAnswerEl.textContent = `正确答案：${question.correctAnswer}`;
+                answerExplanation.textContent = question.explanation;
+                
+                questionTags.innerHTML = "";
+                question.tags.forEach(tag => {
+                    const tagSpan = document.createElement('span');
+                    tagSpan.className = "bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded";
+                    tagSpan.textContent = tag;
+                    questionTags.appendChild(tagSpan);
+                });
+                
+                answer解析.classList.add('hidden');
+                checkAnswerBtn.classList.remove('hidden');
+                nextQuestionBtn.classList.add('hidden');
+                
+                // 更新标记错题按钮状态
+                const isAlreadyWrong = appData.wrongQuestions.some(item => item.questionId === question.id);
+                const wrongIcon = document.querySelector('.wrong-question-btn i');
+                if (isAlreadyWrong) {
+                    wrongIcon.classList.remove('fa-flag-o');
+                    wrongIcon.classList.add('fa-flag');
+                    wrongIcon.style.color = 'red';
+                } else {
+                    wrongIcon.classList.remove('fa-flag');
+                    wrongIcon.classList.add('fa-flag-o');
+                    wrongIcon.style.color = '';
+                }
+                
+                updateProgress();
+                
+                prevQuestionBtn.disabled = currentQuestionIndex === 0;
+                const isLastQuestion = currentQuestionIndex === filteredQuestions.length - 1;
+                nextQuestionBtnDirect.disabled = isLastQuestion;
+            }
+            
+            // 更新进度条
+            function updateProgress() {
+                const total = filteredQuestions.length;
+                const current = currentQuestionIndex + 1;
+                const percentage = (current / total) * 100;
+                
+                progressText.textContent = `${current}/${total}题`;
+                progressBar.style.width = `${percentage}%`;
+            }
+            
+            // 加载下一题
+            function loadNextQuestion() {
+                if (currentQuestionIndex < filteredQuestions.length - 1) {
+                    currentQuestionIndex++;
+                    renderQuestion(filteredQuestions[currentQuestionIndex]);
+                    return true;
+                } else {
+                    showSuccess('练习完成', '您已完成当前筛选条件下的所有题目！');
+                    return false;
+                }
+            }
+            
+            // 加载上一题
+            function loadPrevQuestion() {
+                if (currentQuestionIndex > 0) {
+                    currentQuestionIndex--;
+                    renderQuestion(filteredQuestions[currentQuestionIndex]);
+                    return true;
+                }
+                return false;
+            }
+            
+            // 处理上传题目入口点击
+            function handleUploadClick() {
+                if (appData.currentUser) {
+                    showSection('upload');
+                    document.getElementById('upload').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    showModal(loginModal);
+                    showSuccess('需要登录', '请先登录后再上传题目');
+                }
+            }
+            
+            // 添加到错题记录
+            function addToWrongQuestions(questionId) {
+                // 检查是否已经在错题记录中
+                const existingIndex = appData.wrongQuestions.findIndex(item => item.questionId === questionId);
+                
+                if (existingIndex >= 0) {
+                    // 如果已经存在，更新为未掌握
+                    appData.wrongQuestions[existingIndex].mastered = false;
+                    showSuccess('更新成功', '该题目已更新为未掌握状态');
+                } else {
+                    // 如果不存在，添加到错题记录
+                    const question = appData.questionDatabase.find(q => q.id === questionId);
+                    if (question) {
+                        appData.wrongQuestions.push({
+                            questionId: questionId,
+                            addedTime: new Date().toISOString(),
+                            mastered: false
+                        });
+                        showSuccess('添加成功', '该题目已添加到错题记录');
+                    }
+                }
+                
+                // 更新错题按钮状态
+                const wrongIcon = document.querySelector('.wrong-question-btn i');
+                wrongIcon.classList.remove('fa-flag-o');
+                wrongIcon.classList.add('fa-flag');
+                wrongIcon.style.color = 'red';
+                
+                // 重新渲染错题列表
+                renderWrongQuestions();
+            }
+            
+            // 标记错题为已掌握
+            function markAsMastered(questionId) {
+                const index = appData.wrongQuestions.findIndex(item => item.questionId === questionId);
+                if (index >= 0) {
+                    appData.wrongQuestions[index].mastered = true;
+                    showSuccess('标记成功', '该题目已标记为已掌握');
+                    renderWrongQuestions();
+                }
+            }
+            
+            // 从错题记录中移除
+            function removeFromWrongQuestions(questionId) {
+                const index = appData.wrongQuestions.findIndex(item => item.questionId === questionId);
+                if (index >= 0) {
+                    appData.wrongQuestions.splice(index, 1);
+                    showSuccess('移除成功', '该题目已从错题记录中移除');
+                    
+                    // 如果当前正在查看该题目，更新标记状态
+                    if (filteredQuestions[currentQuestionIndex]?.id === questionId) {
+                        const wrongIcon = document.querySelector('.wrong-question-btn i');
+                        wrongIcon.classList.remove('fa-flag');
+                        wrongIcon.classList.add('fa-flag-o');
+                        wrongIcon.style.color = '';
+                    }
+                    
+                    renderWrongQuestions();
+                }
+            }
+            
+            // 清空所有错题记录
+            function clearAllWrongQuestions() {
+                if (appData.wrongQuestions.length === 0) {
+                    showSuccess('操作提示', '您的错题记录已经是空的');
+                    return;
+                }
+                
+                showConfirm(
+                    '确认清空',
+                    '您确定要清空所有错题记录吗？此操作不可恢复。',
+                    () => {
+                        appData.wrongQuestions = [];
+                        renderWrongQuestions();
+                        showSuccess('清空成功', '所有错题记录已清空');
+                    }
+                );
+            }
+            
+            // 渲染错题记录
+            function renderWrongQuestions() {
+                // 更新统计数据
+                const total = appData.wrongQuestions.length;
+                const mastered = appData.wrongQuestions.filter(item => item.mastered).length;
+                const remaining = total - mastered;
+                
+                wrongQuestionCount.textContent = total;
+                masteredQuestionCount.textContent = mastered;
+                remainingQuestionCount.textContent = remaining;
+                
+                // 获取筛选条件
+                const chapterFilter = wrongChapterFilter.value;
+                const typeFilter = wrongTypeFilter.value;
+                const statusFilter = wrongStatusFilter.value;
+                
+                // 筛选错题
+                let filteredWrongQuestions = [...appData.wrongQuestions];
+                
+                // 应用筛选
+                filteredWrongQuestions = filteredWrongQuestions.filter(item => {
+                    const question = appData.questionDatabase.find(q => q.id === item.questionId);
+                    if (!question) return false;
+                    
+                    // 章节筛选
+                    if (chapterFilter && question.chapter.toString() !== chapterFilter) {
+                        return false;
+                    }
+                    
+                    // 题型筛选
+                    if (typeFilter && question.type !== typeFilter) {
+                        return false;
+                    }
+                    
+                    // 状态筛选
+                    if (statusFilter === 'mastered' && !item.mastered) {
+                        return false;
+                    }
+                    if (statusFilter === 'unmastered' && item.mastered) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                // 清空列表
+                wrongQuestionsList.innerHTML = '';
+                
+                // 显示或隐藏无错题提示
+                if (filteredWrongQuestions.length === 0) {
+                    noWrongQuestions.classList.remove('hidden');
+                    wrongQuestionsList.classList.add('hidden');
+                } else {
+                    noWrongQuestions.classList.add('hidden');
+                    wrongQuestionsList.classList.remove('hidden');
+                    
+                    // 按添加时间排序（最新的在前）
+                    filteredWrongQuestions.sort((a, b) => new Date(b.addedTime) - new Date(a.addedTime));
+                    
+                    // 添加错题到列表
+                    filteredWrongQuestions.forEach(item => {
+                        const question = appData.questionDatabase.find(q => q.id === item.questionId);
+                        if (!question) return;
+                        
+                        // 题型文本映射
+                        const typeMap = {
+                            'single': '单选题',
+                            'multiple': '多选题',
+                            'judge': '判断题',
+                            'short': '简答题'
+                        };
+                        
+                        // 章节文本映射
+                        const chapterMap = {
+                            1: '第一章 商品与货币',
+                            2: '第二章 资本与剩余价值',
+                            3: '第三章 资本积累',
+                            4: '第四章 资本循环与周转',
+                            5: '第五章 社会总资本再生产',
+                            6: '第六章 平均利润与生产价格',
+                            7: '第七章 垄断资本主义'
+                        };
+                        
+                        const wrongItem = document.createElement('div');
+                        wrongItem.className = 'bg-neutral rounded-lg p-4 hover:shadow-md transition-shadow';
+                        
+                        // 格式化日期
+                        const addedDate = new Date(item.addedTime);
+                        const formattedDate = `${addedDate.getFullYear()}-${(addedDate.getMonth() + 1).toString().padStart(2, '0')}-${addedDate.getDate().toString().padStart(2, '0')} ${addedDate.getHours().toString().padStart(2, '0')}:${addedDate.getMinutes().toString().padStart(2, '0')}`;
+                        
+                        wrongItem.innerHTML = `
+                            <div class="flex justify-between items-start mb-3">
+                                <h4 class="font-medium text-gray-900">${question.content}</h4>
+                                <span class="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-medium">${typeMap[question.type]}</span>
+                            </div>
+                            
+                            <div class="mb-3 text-sm text-gray-600">
+                                <div class="mb-2">正确答案：<span class="font-medium">${question.correctAnswer}</span></div>
+                                <div class="text-gray-500 line-clamp-2">${question.explanation}</div>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-2 mb-3 text-xs text-gray-500">
+                                <span><i class="fa fa-book mr-1"></i> ${chapterMap[question.chapter]}</span>
+                                <span><i class="fa fa-calendar mr-1"></i> ${formattedDate}</span>
+                                <span class="px-2 py-0.5 rounded-full ${item.mastered ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${item.mastered ? '已掌握' : '待复习'}
+                                </span>
+                            </div>
+                            
+                            <div class="flex justify-end space-x-2">
+                                <button class="btn-secondary text-sm px-3 py-1 view-wrong-question" data-id="${question.id}">
+                                    <i class="fa fa-eye mr-1"></i> 查看题目
+                                </button>
+                                ${item.mastered ? 
+                                    `<button class="btn-secondary text-sm px-3 py-1 mark-unmastered" data-id="${question.id}">
+                                        <i class="fa fa-undo mr-1"></i> 标记未掌握
+                                    </button>` : 
+                                    `<button class="btn-primary text-sm px-3 py-1 mark-mastered" data-id="${question.id}">
+                                        <i class="fa fa-check mr-1"></i> 标记已掌握
+                                    </button>`
+                                }
+                                <button class="btn-secondary text-sm px-3 py-1 text-red-600 border-red-600 hover:bg-red-50 remove-wrong-question" data-id="${question.id}">
+                                    <i class="fa fa-trash mr-1"></i> 移除
+                                </button>
+                            </div>
+                        `;
+                        
+                        wrongQuestionsList.appendChild(wrongItem);
+                    });
+                    
+                    // 添加错题项事件监听
+                    document.querySelectorAll('.view-wrong-question').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const questionId = parseInt(btn.getAttribute('data-id'));
+                            const index = appData.questionDatabase.findIndex(q => q.id === questionId);
+                            if (index !== -1) {
+                                filteredQuestions = [...appData.questionDatabase];
+                                currentQuestionIndex = index;
+                                practiceLevel.textContent = `当前练习：综合题库`;
+                                showSection('questions');
+                                renderQuestion(filteredQuestions[currentQuestionIndex]);
+                            }
+                        });
+                    });
+                    
+                    document.querySelectorAll('.mark-mastered').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const questionId = parseInt(btn.getAttribute('data-id'));
+                            markAsMastered(questionId);
+                        });
+                    });
+                    
+                    document.querySelectorAll('.mark-unmastered').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const questionId = parseInt(btn.getAttribute('data-id'));
+                            addToWrongQuestions(questionId);
+                        });
+                    });
+                    
+                    document.querySelectorAll('.remove-wrong-question').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const questionId = parseInt(btn.getAttribute('data-id'));
+                            removeFromWrongQuestions(questionId);
+                        });
+                    });
+                }
+            }
+            
+            // 提交答案
+            function checkAnswer() {
+                const question = filteredQuestions[currentQuestionIndex];
+                let isCorrect = false;
+                
+                if (question.type === "short") {
+                    const userAnswer = shortAnswerInput.value.trim();
+                    isCorrect = userAnswer.toLowerCase().includes(question.correctAnswer.toLowerCase().substring(0, 10));
+                } else if (question.type === "single" || question.type === "judge") {
+                    const selectedOption = document.querySelector('input[name="question"]:checked');
+                    if (!selectedOption) {
+                        alert('请选择一个答案');
+                        return;
+                    }
+                    
+                    const selectedValue = selectedOption.id.split('-')[1];
+                    isCorrect = selectedValue === question.correctAnswer;
+                } else if (question.type === "multiple") {
+                    const selectedOptions = document.querySelectorAll('input[name="question"]:checked');
+                    if (selectedOptions.length === 0) {
+                        alert('请至少选择一个答案');
+                        return;
+                    }
+                    
+                    let selectedValues = [];
+                    selectedOptions.forEach(option => {
+                        selectedValues.push(option.id.split('-')[1]);
+                    });
+                    selectedValues.sort();
+                    
+                    let correctAnswers = question.correctAnswer.split('');
+                    correctAnswers.sort();
+                    
+                    isCorrect = JSON.stringify(selectedValues) === JSON.stringify(correctAnswers);
+                }
+                
+                answer解析.classList.remove('hidden');
+                
+                if (question.type !== "short") {
+                    document.querySelectorAll('#question-options input').forEach(option => {
+                        option.disabled = true;
+                        
+                        const optionValue = option.id.split('-')[1];
+                        if (question.type === "single" || question.type === "judge") {
+                            if (optionValue === question.correctAnswer) {
+                                option.parentElement.classList.add('text-green-600');
+                            } else if (option.checked) {
+                                option.parentElement.classList.add('text-red-600');
+                            }
+                        } else if (question.type === "multiple") {
+                            if (question.correctAnswer.includes(optionValue)) {
+                                option.parentElement.classList.add('text-green-600');
+                            } else if (option.checked) {
+                                option.parentElement.classList.add('text-red-600');
+                            }
+                        }
+                    });
+                }
+                
+                // 如果回答错误，询问是否添加到错题
+                if (!isCorrect) {
+                    showConfirm(
+                        '回答错误',
+                        '您的回答不正确，是否将此题添加到错题记录？',
+                        () => {
+                            addToWrongQuestions(question.id);
+                        }
+                    );
+                } else {
+                    showSuccess('回答正确', '恭喜您，回答正确！');
+                }
+                
+                checkAnswerBtn.classList.add('hidden');
+                nextQuestionBtn.classList.remove('hidden');
+            }
+            
+            // 执行搜索
+            function performSearch(query) {
+                if (!query.trim()) {
+                    showSuccess('搜索提示', '请输入搜索关键词');
+                    return;
+                }
+                
+                // 获取搜索范围设置
+                const searchInContent = searchContentCheckbox.checked;
+                const searchInTags = searchTagsCheckbox.checked;
+                const searchInExplanation = searchExplanationCheckbox.checked;
+                
+                // 过滤题目
+                const results = appData.questionDatabase.filter(question => {
+                    let matches = false;
+                    
+                    // 搜索题目内容
+                    if (searchInContent && question.content.toLowerCase().includes(query.toLowerCase())) {
+                        matches = true;
+                    }
+                    
+                    // 搜索标签
+                    if (searchInTags && question.tags.some(tag => 
+                        tag.toLowerCase().includes(query.toLowerCase()))) {
+                        matches = true;
+                    }
+                    
+                    // 搜索解析
+                    if (searchInExplanation && question.explanation.toLowerCase().includes(query.toLowerCase())) {
+                        matches = true;
+                    }
+                    
+                    return matches;
+                });
+                
+                // 显示搜索结果
+                displaySearchResults(query, results);
+            }
+            
+            // 显示搜索结果
+            function displaySearchResults(query, results) {
+                // 更新搜索结果统计
+                searchKeywordDisplay.textContent = query;
+                searchResultCount.textContent = results.length;
+                
+                // 清空现有结果
+                searchResultsList.innerHTML = '';
+                
+                // 显示或隐藏无结果提示
+                if (results.length === 0) {
+                    noSearchResults.classList.remove('hidden');
+                    searchResultsList.classList.add('hidden');
+                } else {
+                    noSearchResults.classList.add('hidden');
+                    searchResultsList.classList.remove('hidden');
+                    
+                    // 添加搜索结果
+                    results.forEach(question => {
+                        const resultItem = createSearchResultItem(question, query);
+                        searchResultsList.appendChild(resultItem);
+                    });
+                }
+                
+                // 显示搜索结果区域
+                showSection('search-results');
+                document.getElementById('search-results').scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // 创建搜索结果项
+            function createSearchResultItem(question, query) {
+                const div = document.createElement('div');
+                div.className = 'bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow';
+                
+                // 题型文本映射
+                const typeMap = {
+                    'single': '单选题',
+                    'multiple': '多选题',
+                    'judge': '判断题',
+                    'short': '简答题'
+                };
+                
+                // 难度文本映射
+                const difficultyMap = {
+                    'easy': '易',
+                    'medium': '中',
+                    'hard': '难'
+                };
+                
+                // 章节文本映射
+                const chapterMap = {
+                    1: '第一章 商品与货币',
+                    2: '第二章 资本与剩余价值',
+                    3: '第三章 资本积累',
+                    4: '第四章 资本循环与周转',
+                    5: '第五章 社会总资本再生产',
+                    6: '第六章 平均利润与生产价格',
+                    7: '第七章 垄断资本主义'
+                };
+                
+                // 学段文本映射
+                const levelMap = {
+                    'freshman': '大一',
+                    'sophomore': '大二',
+                    'junior': '大三',
+                    'senior': '大四',
+                    'graduate': '研究生'
+                };
+                
+                // 高亮显示搜索关键词
+                let highlightedContent = question.content;
+                if (question.content.toLowerCase().includes(query.toLowerCase())) {
+                    const regex = new RegExp(`(${query})`, 'gi');
+                    highlightedContent = question.content.replace(regex, '<span class="search-result-highlight">$1</span>');
+                }
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-medium">${highlightedContent}</h3>
+                        <span class="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-medium">${typeMap[question.type]}</span>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            ${question.tags.map(tag => {
+                                if (tag.toLowerCase().includes(query.toLowerCase())) {
+                                    return `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                                        ${tag.replace(new RegExp(`(${query})`, 'gi'), '<span class="search-result-highlight">$1</span>')}
+                                    </span>`;
+                                }
+                                return `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${tag}</span>`;
+                            }).join('')}
+                        </div>
+                        
+                        <div class="text-sm text-gray-500 flex flex-wrap gap-x-6 gap-y-2">
+                            <span><i class="fa fa-book mr-1"></i> ${chapterMap[question.chapter]}</span>
+                            <span><i class="fa fa-graduation-cap mr-1"></i> ${levelMap[question.level]}</span>
+                            <span><i class="fa fa-signal mr-1"></i> 难度：${difficultyMap[question.difficulty]}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button class="btn-primary view-question-btn" data-id="${question.id}">
+                            <i class="fa fa-eye mr-1"></i> 查看题目
+                        </button>
+                    </div>
+                `;
+                
+                // 添加查看题目事件
+                div.querySelector('.view-question-btn').addEventListener('click', () => {
+                    // 找到题目索引
+                    const index = appData.questionDatabase.findIndex(q => q.id === question.id);
+                    if (index !== -1) {
+                        // 切换到练习页面并显示该题目
+                        filteredQuestions = [...appData.questionDatabase];
+                        currentQuestionIndex = index;
+                        practiceLevel.textContent = `当前练习：综合题库`;
+                        showSection('questions');
+                        renderQuestion(filteredQuestions[currentQuestionIndex]);
+                    }
+                });
+                
+                return div;
+            }
+            
+            // 应用搜索结果筛选
+            function applySearchResultFilter(filterType) {
+                const currentQuery = searchKeywordDisplay.textContent;
+                let filtered = [...searchResultsList.children];
+                
+                // 根据筛选类型过滤结果
+                switch(filterType) {
+                    case 'difficulty-easy':
+                        filtered = filtered.filter(item => 
+                            item.innerHTML.includes('难度：易')
+                        );
+                        break;
+                    case 'difficulty-medium':
+                        filtered = filtered.filter(item => 
+                            item.innerHTML.includes('难度：中')
+                        );
+                        break;
+                    case 'difficulty-hard':
+                        filtered = filtered.filter(item => 
+                            item.innerHTML.includes('难度：难')
+                        );
+                        break;
+                    case 'type-single':
+                        filtered = filtered.filter(item => 
+                            item.innerHTML.includes('单选题')
+                        );
+                        break;
+                    case 'type-multiple':
+                        filtered = filtered.filter(item => 
+                            item.innerHTML.includes('多选题')
+                        );
+                        break;
+                    case 'type-judge':
+                        filtered = filtered.filter(item => 
+                            item.innerHTML.includes('判断题')
+                        );
+                        break;
+                    case 'type-short':
+                        filtered = filtered.filter(item => 
+                            item.innerHTML.includes('简答题')
+                        );
+                        break;
+                    // 默认按相关度（原始顺序）
+                    default:
+                        break;
+                }
+                
+                // 重新显示筛选后的结果
+                searchResultsList.innerHTML = '';
+                filtered.forEach(item => {
+                    searchResultsList.appendChild(item);
+                });
+                
+                // 更新结果计数
+                searchResultCount.textContent = filtered.length;
+                
+                // 显示或隐藏无结果提示
+                if (filtered.length === 0) {
+                    noSearchResults.classList.remove('hidden');
+                } else {
+                    noSearchResults.classList.add('hidden');
+                }
+            }
+            
+            // 初始化事件监听器
+            function initEventListeners() {
+                // 移动端菜单切换
+                mobileMenuBtn.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+                
+                // 用户菜单切换
+                userMenuButton.addEventListener('click', () => {
+                    userDropdown.classList.toggle('hidden');
+                });
+                
+                // 点击页面其他地方关闭下拉菜单
+                document.addEventListener('click', (e) => {
+                    if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.add('hidden');
+                    }
+                    
+                    if (!mobileMenuBtn.contains(e.target) && !mobileMenu.contains(e.target)) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+                
+                // 导航链接点击事件
+                navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const sectionId = link.getAttribute('href').substring(1);
+                        showSection(sectionId);
+                        mobileMenu.classList.add('hidden');
+                    });
+                });
+                
+                // 登录注册按钮点击事件
+                loginBtn.addEventListener('click', () => showModal(loginModal));
+                registerBtn.addEventListener('click', () => showModal(registerModal));
+                mobileLoginBtn.addEventListener('click', () => {
+                    showModal(loginModal);
+                    mobileMenu.classList.add('hidden');
+                });
+                mobileRegisterBtn.addEventListener('click', () => {
+                    showModal(registerModal);
+                    mobileMenu.classList.add('hidden');
+                });
+                
+                // 模态框切换
+                switchToRegister.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    hideModal(loginModal);
+                    showModal(registerModal);
+                });
+                
+                switchToLogin.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    hideModal(registerModal);
+                    showModal(loginModal);
+                });
+                
+                forgotPasswordLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    hideModal(loginModal);
+                    showModal(forgotPasswordModal);
+                });
+                
+                backToLogin.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    hideModal(forgotPasswordModal);
+                    showModal(loginModal);
+                });
+                
+                // 关闭模态框
+                successConfirm.addEventListener('click', () => {
+                    hideModal(successModal);
+                });
+                
+                closeDetailModal.addEventListener('click', () => {
+                    hideModal(questionDetailModal);
+                });
+                
+                // 发送验证码
+                sendCodeBtn.addEventListener('click', () => {
+                    const phone = document.getElementById('forgot-phone').value;
+                    if (!phone) {
+                        alert('请输入手机号');
+                        return;
+                    }
+                    
+                    let countdown = 60;
+                    sendCodeBtn.disabled = true;
+                    sendCodeBtn.textContent = `重新发送(${countdown}s)`;
+                    
+                    const timer = setInterval(() => {
+                        countdown--;
+                        sendCodeBtn.textContent = `重新发送(${countdown}s)`;
+                        
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            sendCodeBtn.disabled = false;
+                            sendCodeBtn.textContent = '获取验证码';
+                        }
+                    }, 1000);
+                    
+                    showSuccess('验证码已发送', `验证码已发送至手机 ${phone}，请查收`);
+                });
+                
+                // 表单提交事件
+                loginForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById('login-username').value;
+                    const password = document.getElementById('login-password').value;
+                    
+                    if (!username || !password) {
+                        alert('请输入用户名和密码');
+                        return;
+                    }
+                    
+                    let userRole = 'student';
+                    if (username === 'teacher') {
+                        userRole = 'teacher';
+                    }
+                    
+                    hideModal(loginModal);
+                    switchToLoggedInState({
+                        username: username,
+                        role: userRole
+                    });
+                });
+                
+                registerForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById('register-username').value;
+                    const phone = document.getElementById('register-phone').value;
+                    const password = document.getElementById('register-password').value;
+                    const confirmPassword = document.getElementById('register-confirm-password').value;
+                    const role = document.getElementById('register-role').value;
+                    
+                    if (!username || !phone || !password || !confirmPassword || !role) {
+                        alert('请填写完整信息');
+                        return;
+                    }
+                    
+                    if (password !== confirmPassword) {
+                        alert('两次输入的密码不一致');
+                        return;
+                    }
+                    
+                    if (password.length < 6) {
+                        alert('密码长度至少为6位');
+                        return;
+                    }
+                    
+                    hideModal(registerModal);
+                    showSuccess('注册成功', '您已成功注册，现在可以登录系统了');
+                });
+                
+                forgotPasswordForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const phone = document.getElementById('forgot-phone').value;
+                    const code = document.getElementById('verify-code').value;
+                    const newPassword = document.getElementById('new-password').value;
+                    
+                    if (!phone || !code || !newPassword) {
+                        alert('请填写完整信息');
+                        return;
+                    }
+                    
+                    if (newPassword.length < 6) {
+                        alert('密码长度至少为6位');
+                        return;
+                    }
+                    
+                    hideModal(forgotPasswordModal);
+                    showSuccess('密码重置成功', '您的密码已成功重置，请使用新密码登录');
+                });
+                
+                // 退出登录
+                logoutBtn.addEventListener('click', () => {
+                    switchToLoggedOutState();
+                    showSuccess('退出成功', '您已成功退出登录');
+                    showSection('home');
+                });
+                
+                // 开始练习按钮
+                startPracticeBtn.addEventListener('click', startPractice);
+                browseQuestionsBtn.addEventListener('click', startPractice);
+                startPracticeFromWrongBtn.addEventListener('click', startPracticeFromWrong);
+                
+                // 章节练习按钮
+                document.querySelectorAll('.start-practice').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const level = btn.getAttribute('data-level');
+                        let levelCode = "freshman";
+                        if (level === "大二") levelCode = "sophomore";
+                        if (level === "大三") levelCode = "junior";
+                        if (level === "大四") levelCode = "senior";
+                        if (level === "研究生") levelCode = "graduate";
+                        
+                        filteredQuestions = appData.questionDatabase.filter(q => q.level === levelCode);
+                        currentQuestionIndex = 0;
+                        
+                        if (filteredQuestions.length === 0) {
+                            showSuccess('暂无题目', `当前${level}题库暂时没有题目`);
+                            return;
+                        }
+                        
+                        practiceLevel.textContent = `当前练习：${level}题库`;
+                        showSection('questions');
+                        renderQuestion(filteredQuestions[currentQuestionIndex]);
+                        document.getElementById('questions').scrollIntoView({ behavior: 'smooth' });
+                    });
+                });
+                
+                // 上传题目按钮事件
+                quickUploadBtn.addEventListener('click', handleUploadClick);
+                homeUploadBtn.addEventListener('click', handleUploadClick);
+                uploadCard.addEventListener('click', handleUploadClick);
+                questionsUploadBtn.addEventListener('click', handleUploadClick);
+                mobileQuickUpload.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleUploadClick();
+                    mobileMenu.classList.add('hidden');
+                });
+                
+                // 提交答案
+                checkAnswerBtn.addEventListener('click', checkAnswer);
+                
+                // 下一题
+                nextQuestionBtn.addEventListener('click', loadNextQuestion);
+                
+                // 直接下一题（不查看答案）
+                nextQuestionBtnDirect.addEventListener('click', loadNextQuestion);
+                
+                // 上一题
+                prevQuestionBtn.addEventListener('click', loadPrevQuestion);
+                
+                // 标记/取消标记错题
+                wrongQuestionBtn.addEventListener('click', () => {
+                    if (!appData.currentUser) {
+                        showModal(loginModal);
+                        showSuccess('需要登录', '请先登录后再使用错题功能');
+                        return;
+                    }
+                    
+                    const currentQuestion = filteredQuestions[currentQuestionIndex];
+                    const isAlreadyWrong = appData.wrongQuestions.some(item => item.questionId === currentQuestion.id);
+                    
+                    if (isAlreadyWrong) {
+                        showConfirm(
+                            '取消标记',
+                            '确定要将该题目从错题记录中移除吗？',
+                            () => {
+                                removeFromWrongQuestions(currentQuestion.id);
+                            }
+                        );
+                    } else {
+                        addToWrongQuestions(currentQuestion.id);
+                    }
+                });
+                
+                // 错题记录筛选
+                applyWrongFilterBtn.addEventListener('click', renderWrongQuestions);
+                resetWrongFilterBtn.addEventListener('click', () => {
+                    wrongChapterFilter.value = '';
+                    wrongTypeFilter.value = '';
+                    wrongStatusFilter.value = '';
+                    renderWrongQuestions();
+                });
+                
+                // 清空错题记录
+                clearWrongQuestionsBtn.addEventListener('click', clearAllWrongQuestions);
+                
+                // 点击模态框背景关闭
+                [loginModal, registerModal, forgotPasswordModal, successModal, confirmModal, questionDetailModal].forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            hideModal(modal);
+                        }
+                    });
+                });
+                
+                // 搜索功能事件
+                searchButton.addEventListener('click', () => {
+                    const query = globalSearchInput.value.trim();
+                    performSearch(query);
+                });
+                
+                mobileSearchButton.addEventListener('click', () => {
+                    const query = mobileGlobalSearchInput.value.trim();
+                    // 同步移动端和桌面端的搜索范围设置
+                    searchContentCheckbox.checked = mobileSearchContentCheckbox.checked;
+                    searchTagsCheckbox.checked = mobileSearchTagsCheckbox.checked;
+                    performSearch(query);
+                    mobileMenu.classList.add('hidden');
+                });
+                
+                // 按Enter键执行搜索
+                globalSearchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const query = globalSearchInput.value.trim();
+                        performSearch(query);
+                    }
+                });
+                
+                mobileGlobalSearchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const query = mobileGlobalSearchInput.value.trim();
+                        // 同步移动端和桌面端的搜索范围设置
+                        searchContentCheckbox.checked = mobileSearchContentCheckbox.checked;
+                        searchTagsCheckbox.checked = mobileSearchTagsCheckbox.checked;
+                        performSearch(query);
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+                
+                // 搜索结果筛选
+                searchResultFilter.addEventListener('change', (e) => {
+                    applySearchResultFilter(e.target.value);
+                });
+            }
+            
+            // 初始化
+            function init() {
+                // 显示首页
+                showSection('home');
+                // 初始化事件监听器
+                initEventListeners();
+                // 更新题目数量统计
+                updateQuestionCounts();
+                // 初始化错题记录
+                renderWrongQuestions();
+            }
+            
+            // 更新题目数量统计
+            function updateQuestionCounts() {
+                const counts = {
+                    freshman: 0,
+                    sophomore: 0,
+                    junior: 0,
+                    senior: 0,
+                    graduate: 0
+                };
+                
+                appData.questionDatabase.forEach(question => {
+                    if (question.level === 'freshman') counts.freshman++;
+                    if (question.level === 'sophomore') counts.sophomore++;
+                    if (question.level === 'junior') counts.junior++;
+                    if (question.level === 'senior') counts.senior++;
+                    if (question.level === 'graduate') counts.graduate++;
+                });
+                
+                freshmanCount.textContent = counts.freshman;
+                sophomoreCount.textContent = counts.sophomore;
+                juniorCount.textContent = counts.junior;
+                seniorCount.textContent = counts.senior;
+                graduateCount.textContent = counts.graduate;
+            }
+            
+            // 启动应用
+            init();
+        });
+    </script>
+    
